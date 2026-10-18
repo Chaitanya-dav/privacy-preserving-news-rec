@@ -1,0 +1,19 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Secrets and environment variables
+.env
+.env.*
+
+# Model checkpoints and datasets
+*.pt
+*.pth
+data/raw/
+data/processed/
+
+# Generated files
+*.log
+.pytest_cache/
