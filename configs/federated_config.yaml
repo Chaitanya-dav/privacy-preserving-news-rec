@@ -1,0 +1,21 @@
+# ==============================================================================
+# Federated Learning Configuration (Flower + FedAvg)
+# ==============================================================================
+
+federated:
+  num_clients: 5               # Number of simulated client edge partitions
+  num_rounds: 10               # Federated communication rounds
+  fraction_fit: 1.0            # Fraction of clients participating in training per round
+  fraction_evaluate: 1.0       # Fraction of clients participating in evaluation
+  min_fit_clients: 5
+  min_available_clients: 5
+
+local_training:
+  local_epochs: 2              # Number of local training epochs on edge device
+  batch_size: 32               # Batch size on edge device
+  learning_rate: 0.001         # Client optimizer learning rate
+  weight_decay: 0.00001
+
+partitioning:
+  strategy: "user_dirichlet"   # "user_dirichlet" (non-IID) or "user_uniform" (IID)
+  alpha: 0.5                   # Dirichlet concentration parameter for non-IID splits

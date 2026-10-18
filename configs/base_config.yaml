@@ -1,0 +1,55 @@
+# ==============================================================================
+# Base Configuration: Centralized Architecture, Models & Training
+# ==============================================================================
+
+system:
+  seed: 42
+  device: "auto"               # "auto", "cuda", or "cpu"
+  num_workers: 0
+
+paths:
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  embeddings_dir: "data/embeddings"
+  results_dir: "results"
+  checkpoints_dir: "results/checkpoints"
+
+dataset:
+  mind_variant: "demo"         # "demo" (lightweight) or "small"
+  download_url: "https://recodatasets.z20.web.core.windows.net/newsrec/MINDsmall_train.zip"
+  max_title_len: 30
+  max_abstract_len: 50
+  max_history_len: 50
+  negative_sample_ratio: 4     # Number of negative articles sampled per positive click
+
+models:
+  text_encoder:
+    model_name: "distilbert-base-uncased"
+    embedding_dim: 768
+    freeze_weights: true
+  
+  image_encoder:
+    model_name: "resnet18"
+    embedding_dim: 512
+    image_size: 224
+    freeze_weights: true
+  
+  multimodal_fusion:
+    fusion_type: "concat_projection" # Concat [text, image] -> Linear projection
+    fused_dim: 256
+    dropout: 0.2
+
+  user_model:
+    pooling: "mean"            # "mean" or "attention"
+    attention_dim: 128
+
+  recommender:
+    hidden_dims: [256, 128]
+    dropout: 0.2
+    output_activation: "sigmoid"
+
+centralized_training:
+  epochs: 5
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.00001

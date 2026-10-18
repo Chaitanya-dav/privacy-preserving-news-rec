@@ -1,0 +1,16 @@
+# ==============================================================================
+# Privacy Configuration: Secure Aggregation & Differential Privacy
+# ==============================================================================
+
+secure_aggregation:
+  enabled: true
+  protocol: "pairwise_masking"   # Additive zero-sum pairwise masking protocol simulation
+  shamir_threshold_k: 3          # Any 3 surviving client shares can reconstruct pairwise seed
+  shamir_total_n: 5              # Total number of participating clients
+  prime_modulus: 104729          # Prime modulus for finite field cryptographic operations
+
+differential_privacy:
+  enabled: false                 # Toggle true for Differential Privacy benchmark (Exp 6)
+  clip_norm: 1.0                 # Max L2-norm threshold for local client updates
+  noise_multiplier: 0.05         # Standard deviation of added Gaussian noise (sigma = clip_norm * multiplier)
+  target_delta: 0.00001          # Delta privacy parameter (typically < 1 / total_users)
