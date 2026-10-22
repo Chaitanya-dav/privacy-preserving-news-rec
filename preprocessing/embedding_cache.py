@@ -26,10 +26,14 @@ class MultimodalEmbeddingCache:
         text_embeddings: Optional[torch.Tensor] = None,
         image_embeddings: Optional[torch.Tensor] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        cache_dir="cache",
+        device="cpu"
     ):
         self.text_embeddings = text_embeddings
         self.image_embeddings = image_embeddings
         self.metadata = metadata or {}
+        self.cache_dir = cache_dir
+        self.device = device
 
     @classmethod
     def precompute(

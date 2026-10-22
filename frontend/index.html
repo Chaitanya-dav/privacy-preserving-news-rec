@@ -1,353 +1,372 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PrivacyRec — Privacy-Preserving Multimodal News Recommender</title>
-  <meta name="description" content="Interactive dashboard for a privacy-preserving federated multimodal news recommendation system trained on MIND dataset with differential privacy and secure aggregation." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <meta name="description"
+    content="Interactive dashboard for a privacy-preserving federated multimodal news recommendation system trained on MIND dataset with differential privacy and secure aggregation." />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
   <link rel="stylesheet" href="css/dashboard.css" />
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
 
-<div class="app-layout">
+  <div class="app-layout">
 
-  <!-- ── Top Bar ─────────────────────────────────────────────────────── -->
-  <header class="topbar">
-    <div class="topbar-brand">
-      <div class="logo">🛡️</div>
-      <h1>PrivacyRec Dashboard</h1>
-    </div>
-    <div class="topbar-status">
-      <div class="status-dot"></div>
-      <span id="api-status">Connecting…</span>
-    </div>
-  </header>
+    <!-- ── Top Bar ─────────────────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="logo">🛡️</div>
+        <h1>PrivacyRec Dashboard</h1>
+      </div>
+      <div class="topbar-status">
+        <div class="status-dot"></div>
+        <span id="api-status">Connecting…</span>
+      </div>
+    </header>
 
-  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
-  <nav class="sidebar" role="navigation" aria-label="Main navigation">
-    <span class="sidebar-section-label">Dashboard</span>
-    <div class="nav-item active" data-section="overview" id="nav-overview" role="button" tabindex="0">
-      <span class="nav-icon">📊</span> Overview
-    </div>
-    <div class="nav-item" data-section="recommend" id="nav-recommend" role="button" tabindex="0">
-      <span class="nav-icon">✨</span> Recommend
-    </div>
-    <div class="nav-item" data-section="news" id="nav-news" role="button" tabindex="0">
-      <span class="nav-icon">📰</span> Browse News
-    </div>
+    <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+    <nav class="sidebar" role="navigation" aria-label="Main navigation">
+      <span class="sidebar-section-label">Dashboard</span>
+      <div class="nav-item active" data-section="overview" id="nav-overview" role="button" tabindex="0">
+        <span class="nav-icon">📊</span> Overview
+      </div>
+      <div class="nav-item" data-section="recommend" id="nav-recommend" role="button" tabindex="0">
+        <span class="nav-icon">✨</span> Recommend
+      </div>
+      <div class="nav-item" data-section="news" id="nav-news" role="button" tabindex="0">
+        <span class="nav-icon">📰</span> Browse News
+      </div>
 
-    <span class="sidebar-section-label" style="margin-top:16px">System</span>
-    <div class="nav-item" data-section="privacy" id="nav-privacy" role="button" tabindex="0">
-      <span class="nav-icon">🔒</span> Privacy
-    </div>
-  </nav>
+      <span class="sidebar-section-label" style="margin-top:16px">System</span>
+      <div class="nav-item" data-section="privacy" id="nav-privacy" role="button" tabindex="0">
+        <span class="nav-icon">🔒</span> Privacy
+      </div>
+    </nav>
 
-  <!-- ── Main Content ────────────────────────────────────────────────── -->
-  <main class="main-content" role="main">
+    <!-- ── Main Content ────────────────────────────────────────────────── -->
+    <main class="main-content" role="main">
 
-    <!-- ════════════════════════════════════════════════════════════════
+      <!-- ════════════════════════════════════════════════════════════════
          SECTION: OVERVIEW
          ════════════════════════════════════════════════════════════════ -->
-    <section class="page-section active" id="section-overview">
-      <div class="section-header">
-        <h2>System Overview</h2>
-        <p>Training metrics for centralized baseline vs. federated privacy-preserving model.</p>
-      </div>
+      <section class="page-section active" id="section-overview">
+        <div class="section-header">
+          <h2>System Overview</h2>
+          <p>Training metrics for centralized baseline vs. federated privacy-preserving model.</p>
+        </div>
 
-      <!-- Summary Metric Cards -->
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-label">Centralized AUC</div>
-          <div class="metric-value" id="metric-cen-auc">—</div>
-          <div class="metric-sub">5 epochs · MIND</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Centralized nDCG@10</div>
-          <div class="metric-value" id="metric-cen-ndcg10">—</div>
-          <div class="metric-sub">Best checkpoint</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Centralized MRR</div>
-          <div class="metric-value" id="metric-cen-mrr">—</div>
-          <div class="metric-sub">Mean Reciprocal Rank</div>
-        </div>
-        <div class="metric-card fed">
-          <div class="metric-label">Federated AUC 🔒</div>
-          <div class="metric-value" id="metric-fed-auc">—</div>
-          <div class="metric-sub">5 rounds · FedAvg + DP</div>
-        </div>
-        <div class="metric-card fed">
-          <div class="metric-label">Federated nDCG@10 🔒</div>
-          <div class="metric-value" id="metric-fed-ndcg10">—</div>
-          <div class="metric-sub">Privacy-preserving</div>
-        </div>
-        <div class="metric-card fed">
-          <div class="metric-label">Federated MRR 🔒</div>
-          <div class="metric-value" id="metric-fed-mrr">—</div>
-          <div class="metric-sub">Mean Reciprocal Rank</div>
-        </div>
-      </div>
-
-      <!-- Training Charts -->
-      <div class="charts-grid">
-        <div class="chart-card">
-          <h3>📉 Training Loss</h3>
-          <canvas id="chart-loss"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>🎯 AUC</h3>
-          <canvas id="chart-auc"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>📈 nDCG@5</h3>
-          <canvas id="chart-ndcg5"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>🏆 MRR</h3>
-          <canvas id="chart-mrr"></canvas>
-        </div>
-      </div>
-
-      <!-- Architecture Info -->
-      <div class="card" style="margin-top:4px">
-        <h3 style="font-family:'Space Grotesk',sans-serif;font-size:16px;margin-bottom:14px;color:var(--text-primary)">🏗️ Architecture</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Text Encoder</div>
-            <div style="font-size:14px;color:var(--text-secondary)">DistilBERT CLS → 256D</div>
+        <!-- Summary Metric Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Centralized AUC</div>
+            <div class="metric-value" id="metric-cen-auc">—</div>
+            <div class="metric-sub">5 epochs · MIND</div>
           </div>
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Image Encoder</div>
-            <div style="font-size:14px;color:var(--text-secondary)">ResNet-18 Pool → 256D</div>
+          <div class="metric-card">
+            <div class="metric-label">Centralized nDCG@10</div>
+            <div class="metric-value" id="metric-cen-ndcg10">—</div>
+            <div class="metric-sub">Best checkpoint</div>
           </div>
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Fusion</div>
-            <div style="font-size:14px;color:var(--text-secondary)">Concat Projection</div>
+          <div class="metric-card">
+            <div class="metric-label">Centralized MRR</div>
+            <div class="metric-value" id="metric-cen-mrr">—</div>
+            <div class="metric-sub">Mean Reciprocal Rank</div>
           </div>
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">User Encoder</div>
-            <div style="font-size:14px;color:var(--text-secondary)">Mean Pooling over History</div>
+          <div class="metric-card fed">
+            <div class="metric-label">Federated AUC 🔒</div>
+            <div class="metric-value" id="metric-fed-auc">—</div>
+            <div class="metric-sub">5 rounds · FedAvg + DP</div>
           </div>
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Scorer</div>
-            <div style="font-size:14px;color:var(--text-secondary)">Dot Product</div>
+          <div class="metric-card fed">
+            <div class="metric-label">Federated nDCG@10 🔒</div>
+            <div class="metric-value" id="metric-fed-ndcg10">—</div>
+            <div class="metric-sub">Privacy-preserving</div>
           </div>
-          <div>
-            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Federation</div>
-            <div style="font-size:14px;color:var(--text-secondary)">FedAvg · Flower 1.x</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ════════════════════════════════════════════════════════════════
-         SECTION: RECOMMEND
-         ════════════════════════════════════════════════════════════════ -->
-    <section class="page-section" id="section-recommend">
-      <div class="section-header">
-        <h2>✨ Get Recommendations</h2>
-        <p>Enter your reading history (one news ID per line) and the model returns personalised top-K recommendations.</p>
-      </div>
-
-      <div class="recommend-layout">
-        <!-- Input Panel -->
-        <div class="card history-input-card">
-          <label for="history-input">📖 Reading History (News IDs)</label>
-          <textarea
-            id="history-input"
-            class="history-textarea"
-            placeholder="e.g.&#10;N55528&#10;N19639&#10;N61837"
-            aria-label="User reading history news IDs"
-          ></textarea>
-
-          <div class="topk-row">
-            <label for="topk-input">Top-K results:</label>
-            <input id="topk-input" class="topk-input" type="number" value="10" min="1" max="50" aria-label="Number of recommendations" />
-          </div>
-
-          <button id="btn-recommend" class="btn-primary" aria-label="Get recommendations">
-            ✨ Recommend
-          </button>
-          <button id="btn-demo" class="btn-secondary" aria-label="Load demo recommendations">
-            🎬 Load Demo
-          </button>
-
-          <div style="margin-top:18px;padding:14px;background:rgba(99,102,241,0.07);border-radius:10px;border:1px solid rgba(99,102,241,0.15)">
-            <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
-              💡 <b style="color:var(--text-primary)">Tip:</b> Browse the <em>Browse News</em> section and click any article to add it to your history automatically.
-            </p>
+          <div class="metric-card fed">
+            <div class="metric-label">Federated MRR 🔒</div>
+            <div class="metric-value" id="metric-fed-mrr">—</div>
+            <div class="metric-sub">Mean Reciprocal Rank</div>
           </div>
         </div>
 
-        <!-- Results Panel -->
-        <div>
-          <div id="rec-results">
-            <div class="empty-state">
-              <div class="empty-icon">✨</div>
-              <p>Enter your reading history and click <strong>Recommend</strong>, or try the demo.</p>
+        <!-- Training Charts -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>📉 Training Loss</h3>
+            <canvas id="chart-loss"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>🎯 AUC</h3>
+            <canvas id="chart-auc"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>📈 nDCG@5</h3>
+            <canvas id="chart-ndcg5"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>🏆 MRR</h3>
+            <canvas id="chart-mrr"></canvas>
+          </div>
+        </div>
+
+        <!-- Architecture Info -->
+        <div class="card" style="margin-top:4px">
+          <h3
+            style="font-family:'Space Grotesk',sans-serif;font-size:16px;margin-bottom:14px;color:var(--text-primary)">
+            🏗️ Architecture</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                Text Encoder</div>
+              <div style="font-size:14px;color:var(--text-secondary)">DistilBERT CLS → 256D</div>
+            </div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                Image Encoder</div>
+              <div style="font-size:14px;color:var(--text-secondary)">ResNet-18 Pool → 256D</div>
+            </div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                Fusion</div>
+              <div style="font-size:14px;color:var(--text-secondary)">Concat Projection</div>
+            </div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                User Encoder</div>
+              <div style="font-size:14px;color:var(--text-secondary)">Mean Pooling over History</div>
+            </div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                Scorer</div>
+              <div style="font-size:14px;color:var(--text-secondary)">Dot Product</div>
+            </div>
+            <div>
+              <div
+                style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+                Federation</div>
+              <div style="font-size:14px;color:var(--text-secondary)">FedAvg · Flower 1.x</div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ════════════════════════════════════════════════════════════════
+      <!-- ════════════════════════════════════════════════════════════════
+         SECTION: RECOMMEND
+         ════════════════════════════════════════════════════════════════ -->
+      <section class="page-section" id="section-recommend">
+        <div class="section-header">
+          <h2>✨ Get Recommendations</h2>
+          <p>Enter your reading history (one news ID per line) and the model returns personalised top-K recommendations.
+          </p>
+        </div>
+
+        <div class="recommend-layout">
+          <!-- Input Panel -->
+          <div class="card history-input-card">
+            <label for="history-input">📖 Reading History (News IDs)</label>
+            <textarea id="history-input" class="history-textarea" placeholder="e.g.&#10;N55528&#10;N19639&#10;N61837"
+              aria-label="User reading history news IDs"></textarea>
+
+            <div class="topk-row">
+              <label for="topk-input">Top-K results:</label>
+              <input id="topk-input" class="topk-input" type="number" value="10" min="1" max="50"
+                aria-label="Number of recommendations" />
+            </div>
+
+            <button id="btn-recommend" class="btn-primary" aria-label="Get recommendations">
+              ✨ Recommend
+            </button>
+            <button id="btn-demo" class="btn-secondary" aria-label="Load demo recommendations">
+              🎬 Load Demo
+            </button>
+
+            <div
+              style="margin-top:18px;padding:14px;background:rgba(99,102,241,0.07);border-radius:10px;border:1px solid rgba(99,102,241,0.15)">
+              <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+                💡 <b style="color:var(--text-primary)">Tip:</b> Browse the <em>Browse News</em> section and click any
+                article to add it to your history automatically.
+              </p>
+            </div>
+          </div>
+
+          <!-- Results Panel -->
+          <div>
+            <div id="rec-results">
+              <div class="empty-state">
+                <div class="empty-icon">✨</div>
+                <p>Enter your reading history and click <strong>Recommend</strong>, or try the demo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════════
          SECTION: BROWSE NEWS
          ════════════════════════════════════════════════════════════════ -->
-    <section class="page-section" id="section-news">
-      <div class="section-header">
-        <h2>📰 Browse News</h2>
-        <p>Explore the MIND news catalogue. Click any article to add it to your recommendation history.</p>
-      </div>
+      <section class="page-section" id="section-news">
+        <div class="section-header">
+          <h2>📰 Browse News</h2>
+          <p>Explore the MIND news catalogue. Click any article to add it to your recommendation history.</p>
+        </div>
 
-      <div class="news-controls">
-        <input
-          type="search" id="news-search" class="search-input"
-          placeholder="🔍 Search titles…"
-          aria-label="Search news titles"
-        />
-        <select id="category-filter" class="category-select" aria-label="Filter by category">
-          <option value="">All categories</option>
-        </select>
-        <button id="btn-news-refresh" class="btn-icon" title="Refresh" aria-label="Refresh news">🔄</button>
-        <span id="news-count" style="font-size:13px;color:var(--text-secondary);align-self:center;margin-left:4px">—</span>
-      </div>
+        <div class="news-controls">
+          <input type="search" id="news-search" class="search-input" placeholder="🔍 Search titles…"
+            aria-label="Search news titles" />
+          <select id="category-filter" class="category-select" aria-label="Filter by category">
+            <option value="">All categories</option>
+          </select>
+          <button id="btn-news-refresh" class="btn-icon" title="Refresh" aria-label="Refresh news">🔄</button>
+          <span id="news-count"
+            style="font-size:13px;color:var(--text-secondary);align-self:center;margin-left:4px">—</span>
+        </div>
 
-      <div class="news-grid" id="news-grid">
-        <div class="loading-state"><span class="spinner"></span> Loading…</div>
-      </div>
+        <div class="news-grid" id="news-grid">
+          <div class="loading-state"><span class="spinner"></span> Loading…</div>
+        </div>
 
-      <div class="pagination" id="news-pagination"></div>
-    </section>
+        <div class="pagination" id="news-pagination"></div>
+      </section>
 
-    <!-- ════════════════════════════════════════════════════════════════
+      <!-- ════════════════════════════════════════════════════════════════
          SECTION: PRIVACY
          ════════════════════════════════════════════════════════════════ -->
-    <section class="page-section" id="section-privacy">
-      <div class="section-header">
-        <h2>🔒 Privacy Architecture</h2>
-        <p>How this system protects user data using state-of-the-art privacy-preserving techniques.</p>
-      </div>
-
-      <div class="privacy-grid">
-        <div class="privacy-feature-card">
-          <div class="feature-icon">🌐</div>
-          <div class="feature-title">Federated Learning</div>
-          <div class="feature-desc">
-            User data never leaves the local device. Each client trains locally on their own history
-            and only model gradient updates are shared with the server. Orchestrated via
-            <strong>Flower (flwr)</strong> with FedAvg aggregation.
-          </div>
-          <span class="feature-tag">flwr 1.x · FedAvg</span>
+      <section class="page-section" id="section-privacy">
+        <div class="section-header">
+          <h2>🔒 Privacy Architecture</h2>
+          <p>How this system protects user data using state-of-the-art privacy-preserving techniques.</p>
         </div>
 
-        <div class="privacy-feature-card">
-          <div class="feature-icon">🔐</div>
-          <div class="feature-title">Differential Privacy</div>
-          <div class="feature-desc">
-            Gaussian noise is injected into model updates before transmission (DP-SGD).
-            Gradient clipping bounds sensitivity, ensuring individual user behaviour cannot
-            be inferred from the aggregated model even with adversarial access.
+        <div class="privacy-grid">
+          <div class="privacy-feature-card">
+            <div class="feature-icon">🌐</div>
+            <div class="feature-title">Federated Learning</div>
+            <div class="feature-desc">
+              User data never leaves the local device. Each client trains locally on their own history
+              and only model gradient updates are shared with the server. Orchestrated via
+              <strong>Flower (flwr)</strong> with FedAvg aggregation.
+            </div>
+            <span class="feature-tag">flwr 1.x · FedAvg</span>
           </div>
-          <span class="feature-tag">DP-SGD · Gaussian Noise</span>
+
+          <div class="privacy-feature-card">
+            <div class="feature-icon">🔐</div>
+            <div class="feature-title">Differential Privacy</div>
+            <div class="feature-desc">
+              Gaussian noise is injected into model updates before transmission (DP-SGD).
+              Gradient clipping bounds sensitivity, ensuring individual user behaviour cannot
+              be inferred from the aggregated model even with adversarial access.
+            </div>
+            <span class="feature-tag">DP-SGD · Gaussian Noise</span>
+          </div>
+
+          <div class="privacy-feature-card">
+            <div class="feature-icon">🛡️</div>
+            <div class="feature-title">Secure Aggregation</div>
+            <div class="feature-desc">
+              Masked secure aggregation prevents the server from observing any individual
+              client's raw gradient. Only the <em>sum</em> of masked updates is revealed,
+              providing cryptographic privacy guarantees on top of DP.
+            </div>
+            <span class="feature-tag">SecAgg · Masking Protocol</span>
+          </div>
+
+          <div class="privacy-feature-card">
+            <div class="feature-icon">🧠</div>
+            <div class="feature-title">Multimodal Privacy</div>
+            <div class="feature-desc">
+              Pre-extracted embeddings (DistilBERT + ResNet-18) are cached server-side.
+              Clients receive only embedding lookups — raw text and images never travel
+              over the network, reducing information leakage at the modality level.
+            </div>
+            <span class="feature-tag">DistilBERT · ResNet-18</span>
+          </div>
+
+          <div class="privacy-feature-card">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">No Performance Trade-off</div>
+            <div class="feature-desc">
+              Our federated model with DP achieves <strong>AUC 0.980</strong> vs centralized
+              <strong>AUC 0.975</strong> — privacy comes at zero cost to recommendation quality.
+              This is enabled by the embedding-cache design and attentive user encoder.
+            </div>
+            <span class="feature-tag">AUC 0.980 · nDCG 0.980</span>
+          </div>
+
+          <div class="privacy-feature-card">
+            <div class="feature-icon">📋</div>
+            <div class="feature-title">MIND Dataset</div>
+            <div class="feature-desc">
+              Trained on the Microsoft News Dataset (MIND), a large-scale benchmark for
+              news recommendation with 160K+ users and 65K+ articles across 20 categories
+              spanning politics, sports, tech, lifestyle and more.
+            </div>
+            <span class="feature-tag">MIND · 65K+ Articles</span>
+          </div>
         </div>
 
-        <div class="privacy-feature-card">
-          <div class="feature-icon">🛡️</div>
-          <div class="feature-title">Secure Aggregation</div>
-          <div class="feature-desc">
-            Masked secure aggregation prevents the server from observing any individual
-            client's raw gradient. Only the <em>sum</em> of masked updates is revealed,
-            providing cryptographic privacy guarantees on top of DP.
-          </div>
-          <span class="feature-tag">SecAgg · Masking Protocol</span>
-        </div>
-
-        <div class="privacy-feature-card">
-          <div class="feature-icon">🧠</div>
-          <div class="feature-title">Multimodal Privacy</div>
-          <div class="feature-desc">
-            Pre-extracted embeddings (DistilBERT + ResNet-18) are cached server-side.
-            Clients receive only embedding lookups — raw text and images never travel
-            over the network, reducing information leakage at the modality level.
-          </div>
-          <span class="feature-tag">DistilBERT · ResNet-18</span>
-        </div>
-
-        <div class="privacy-feature-card">
-          <div class="feature-icon">📊</div>
-          <div class="feature-title">No Performance Trade-off</div>
-          <div class="feature-desc">
-            Our federated model with DP achieves <strong>AUC 0.980</strong> vs centralized
-            <strong>AUC 0.975</strong> — privacy comes at zero cost to recommendation quality.
-            This is enabled by the embedding-cache design and attentive user encoder.
-          </div>
-          <span class="feature-tag">AUC 0.980 · nDCG 0.980</span>
-        </div>
-
-        <div class="privacy-feature-card">
-          <div class="feature-icon">📋</div>
-          <div class="feature-title">MIND Dataset</div>
-          <div class="feature-desc">
-            Trained on the Microsoft News Dataset (MIND), a large-scale benchmark for
-            news recommendation with 160K+ users and 65K+ articles across 20 categories
-            spanning politics, sports, tech, lifestyle and more.
-          </div>
-          <span class="feature-tag">MIND · 65K+ Articles</span>
-        </div>
-      </div>
-
-      <!-- Privacy flow diagram (text-based) -->
-      <div class="card">
-        <h3 style="font-family:'Space Grotesk',sans-serif;font-size:16px;margin-bottom:18px;color:var(--text-primary)">🔄 Privacy-Preserving Training Flow</h3>
-        <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center">
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">👤</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Local Client<br>Data</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">🧮</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Local<br>Training</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">✂️</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Gradient<br>Clipping</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">🎲</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">DP Noise<br>Injection</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">🔒</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Secure<br>Masking</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">🖥️</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">FedAvg<br>Server</div>
-          </div>
-          <div style="font-size:20px;color:var(--accent-violet)">→</div>
-          <div style="text-align:center;padding:16px">
-            <div style="font-size:28px">🌍</div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Global<br>Model</div>
+        <!-- Privacy flow diagram (text-based) -->
+        <div class="card">
+          <h3
+            style="font-family:'Space Grotesk',sans-serif;font-size:16px;margin-bottom:18px;color:var(--text-primary)">
+            🔄 Privacy-Preserving Training Flow</h3>
+          <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center">
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">👤</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Local Client<br>Data</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">🧮</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Local<br>Training</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">✂️</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Gradient<br>Clipping</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">🎲</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">DP Noise<br>Injection</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">🔒</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Secure<br>Masking</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">🖥️</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">FedAvg<br>Server</div>
+            </div>
+            <div style="font-size:20px;color:var(--accent-violet)">→</div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:28px">🌍</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">Global<br>Model</div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-  </main><!-- /.main-content -->
-</div><!-- /.app-layout -->
+    </main><!-- /.main-content -->
+  </div><!-- /.app-layout -->
 
-<!-- Toast container -->
-<div id="toast-container" aria-live="polite"></div>
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite"></div>
 
-<script src="js/dashboard.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
+
 </html>

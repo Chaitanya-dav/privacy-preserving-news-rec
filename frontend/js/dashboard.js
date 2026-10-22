@@ -6,6 +6,53 @@
  */
 
 const API = 'http://localhost:5000/api';
+// ===== Local watch history =====
+
+const HISTORY_KEY = "privacyrec.watchHistory.v1";
+
+function readWatchHistory() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(HISTORY_KEY) || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function historyIds() {
+  return readWatchHistory().map(item => item.news_id);
+}
+
+function saveWatchHistory(history) {
+  localStorage.setItem(
+    HISTORY_KEY,
+    JSON.stringify(history.slice(-200))
+  );
+}
+
+function recordArticleEvent(article, eventType = "view") {
+  const history = readWatchHistory();
+
+  history.push({
+    news_id: article.news_id,
+    category: article.category || "other",
+    event: eventType,
+    timestamp: new Date().toISOString()
+  });
+
+  saveWatchHistory(history);
+
+  const historyInput = document.getElementById("history-input");
+
+  if (historyInput) {
+    historyInput.value = historyIds().join("\n");
+  }
+
+  if (typeof toast === "function") {
+    toast("Article added to your history", "success");
+  }
+}
 
 /* ── State ──────────────────────────────────────────────────────────── */
 const state = {
@@ -87,19 +134,19 @@ async function loadOverview() {
 
 function renderSummaryCards(summary) {
   const c = summary.centralized || {};
-  const f = summary.federated   || {};
+  const f = summary.federated || {};
 
-  document.getElementById('metric-cen-auc').textContent    = fmt(c.auc);
+  document.getElementById('metric-cen-auc').textContent = fmt(c.auc);
   document.getElementById('metric-cen-ndcg10').textContent = fmt(c.ndcg10);
-  document.getElementById('metric-fed-auc').textContent    = fmt(f.auc);
+  document.getElementById('metric-fed-auc').textContent = fmt(f.auc);
   document.getElementById('metric-fed-ndcg10').textContent = fmt(f.ndcg10);
-  document.getElementById('metric-cen-mrr').textContent    = fmt(c.mrr);
-  document.getElementById('metric-fed-mrr').textContent    = fmt(f.mrr);
+  document.getElementById('metric-cen-mrr').textContent = fmt(c.mrr);
+  document.getElementById('metric-fed-mrr').textContent = fmt(f.mrr);
 }
 
 function renderCharts(history) {
   const cen = history.centralized || [];
-  const fed = history.federated   || [];
+  const fed = history.federated || [];
 
   const cenLabels = cen.map(r => `Ep ${r.epoch}`);
   const fedLabels = fed.map(r => `Rd ${r.round}`);
@@ -110,7 +157,7 @@ function renderCharts(history) {
       title: 'Training Loss',
       datasets: [
         { label: 'Centralized', data: cen.map(r => r.train_loss), color: '#6366f1', labels: cenLabels },
-        { label: 'Federated',   data: fed.map(r => r.train_loss), color: '#10b981', labels: fedLabels },
+        { label: 'Federated', data: fed.map(r => r.train_loss), color: '#10b981', labels: fedLabels },
       ],
     },
     {
@@ -118,7 +165,7 @@ function renderCharts(history) {
       title: 'AUC',
       datasets: [
         { label: 'Centralized', data: cen.map(r => r.AUC), color: '#6366f1', labels: cenLabels },
-        { label: 'Federated',   data: fed.map(r => r.AUC), color: '#10b981', labels: fedLabels },
+        { label: 'Federated', data: fed.map(r => r.AUC), color: '#10b981', labels: fedLabels },
       ],
     },
     {
@@ -126,7 +173,7 @@ function renderCharts(history) {
       title: 'nDCG@5',
       datasets: [
         { label: 'Centralized', data: cen.map(r => r['nDCG@5']), color: '#6366f1', labels: cenLabels },
-        { label: 'Federated',   data: fed.map(r => r['nDCG@5']), color: '#10b981', labels: fedLabels },
+        { label: 'Federated', data: fed.map(r => r['nDCG@5']), color: '#10b981', labels: fedLabels },
       ],
     },
     {
@@ -134,7 +181,7 @@ function renderCharts(history) {
       title: 'MRR',
       datasets: [
         { label: 'Centralized', data: cen.map(r => r.MRR), color: '#6366f1', labels: cenLabels },
-        { label: 'Federated',   data: fed.map(r => r.MRR), color: '#10b981', labels: fedLabels },
+        { label: 'Federated', data: fed.map(r => r.MRR), color: '#10b981', labels: fedLabels },
       ],
     },
   ];
@@ -181,9 +228,9 @@ function renderCharts(history) {
    SECTION 2 — RECOMMEND
    ══════════════════════════════════════════════════════════════════════ */
 document.getElementById('btn-recommend').addEventListener('click', async () => {
-  const rawHistory  = document.getElementById('history-input').value.trim();
-  const topK        = parseInt(document.getElementById('topk-input').value) || 10;
-  const history     = rawHistory.split(/[\n,\s]+/).filter(Boolean);
+  const rawHistory = document.getElementById('history-input').value.trim();
+  const topK = parseInt(document.getElementById('topk-input').value) || 10;
+  const history = rawHistory.split(/[\n,\s]+/).filter(Boolean);
 
   const resultBox = document.getElementById('rec-results');
   resultBox.innerHTML = '<div class="loading-state"><span class="spinner"></span> Getting recommendations…</div>';
@@ -274,9 +321,9 @@ async function loadCategoryFilter() {
 }
 
 async function fetchAndRenderNews() {
-  const q    = state.newsQuery ? `&q=${encodeURIComponent(state.newsQuery)}` : '';
-  const cat  = state.newsCategory ? `&category=${encodeURIComponent(state.newsCategory)}` : '';
-  const url  = `/news/?page=${state.newsPage}&per_page=${state.newsPerPage}${cat}${q}`;
+  const q = state.newsQuery ? `&q=${encodeURIComponent(state.newsQuery)}` : '';
+  const cat = state.newsCategory ? `&category=${encodeURIComponent(state.newsCategory)}` : '';
+  const url = `/news/?page=${state.newsPage}&per_page=${state.newsPerPage}${cat}${q}`;
   const data = await apiFetch(url);
 
   state.newsTotal = data.total || 0;
@@ -286,25 +333,106 @@ async function fetchAndRenderNews() {
 }
 
 function renderNewsGrid(articles) {
-  const grid = document.getElementById('news-grid');
-  if (!articles.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><p>No articles found.</p></div>';
+  const grid = document.getElementById("news-grid");
+
+  if (!grid) {
+    console.error("Could not find #news-grid in index.html");
     return;
   }
-  grid.innerHTML = articles.map((a, i) => `
-    <div class="news-article-card" style="animation-delay:${i * 0.03}s"
-         onclick="addToHistory('${escHtml(a.news_id)}')">
-      <div class="article-category">${escHtml(a.category)}</div>
-      <div class="article-title">${escHtml(a.title)}</div>
-      <div class="article-abstract">${escHtml(a.abstract)}</div>
-      <div class="article-id">${escHtml(a.news_id)} · click to add to history</div>
-    </div>
-  `).join('');
+
+  if (!articles || articles.length === 0) {
+    grid.innerHTML = "<p>No articles found.</p>";
+    return;
+  }
+
+  grid.innerHTML = articles.map(article => `
+        <article class="news-article-card">
+            <img
+                class="news-image"
+                src="${escapeHtml(article.image_url || "")}"
+                alt=""
+                loading="lazy"
+                onerror="this.style.display='none'"
+            >
+
+            <div class="news-card-content">
+                <span class="article-category">
+                    ${escapeHtml(article.category || "News")}
+                </span>
+
+                <h3 class="article-title">
+                    ${escapeHtml(article.title || article.news_id)}
+                </h3>
+
+                <p class="article-abstract">
+                    ${escapeHtml(article.abstract || "")}
+                </p>
+
+                <small>
+                    ${escapeHtml(article.source || "News")}
+                </small>
+
+                <div class="news-card-actions">
+                    <button
+                        type="button"
+                        class="page-btn"
+                        data-view="${escapeHtml(article.news_id)}"
+                    >Mark as read</button>
+
+                    <button
+                        type="button"
+                        class="page-btn"
+                        data-like="${escapeHtml(article.news_id)}"
+                    >♥ Like</button>
+
+                    ${article.url ? `
+                        <a
+                            class="article-link"
+                            href="${escapeHtml(article.url)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-open="${escapeHtml(article.news_id)}"
+                        >Read article ↗</a>
+                    ` : ""}
+                </div>
+            </div>
+        </article>
+    `).join("");
+
+  grid.querySelectorAll("[data-view]").forEach(button => {
+    button.addEventListener("click", () => {
+      const article = articles.find(
+        a => a.news_id === button.dataset.view
+      );
+
+      if (article) recordArticleEvent(article, "view");
+    });
+  });
+
+  grid.querySelectorAll("[data-like]").forEach(button => {
+    button.addEventListener("click", () => {
+      const article = articles.find(
+        a => a.news_id === button.dataset.like
+      );
+
+      if (article) recordArticleEvent(article, "like");
+    });
+  });
+
+  grid.querySelectorAll("[data-open]").forEach(link => {
+    link.addEventListener("click", () => {
+      const article = articles.find(
+        a => a.news_id === link.dataset.open
+      );
+
+      if (article) recordArticleEvent(article, "view");
+    });
+  });
 }
 
 function renderPagination() {
   const totalPages = Math.ceil(state.newsTotal / state.newsPerPage);
-  const container  = document.getElementById('news-pagination');
+  const container = document.getElementById('news-pagination');
   const pages = [];
 
   const btn = (label, page, active = false, disabled = false) =>
@@ -313,7 +441,7 @@ function renderPagination() {
 
   pages.push(btn('←', state.newsPage - 1, false, state.newsPage <= 1));
   const start = Math.max(1, state.newsPage - 2);
-  const end   = Math.min(totalPages, start + 4);
+  const end = Math.min(totalPages, start + 4);
   for (let p = start; p <= end; p++) pages.push(btn(p, p, p === state.newsPage));
   pages.push(btn('→', state.newsPage + 1, false, state.newsPage >= totalPages));
   pages.push(`<span class="page-info">Page ${state.newsPage} / ${totalPages}</span>`);
@@ -341,14 +469,14 @@ document.getElementById('news-search').addEventListener('input', e => {
   clearTimeout(newsDebounceTimer);
   newsDebounceTimer = setTimeout(async () => {
     state.newsQuery = e.target.value.trim();
-    state.newsPage  = 1;
+    state.newsPage = 1;
     await fetchAndRenderNews();
   }, 400);
 });
 
 document.getElementById('category-filter').addEventListener('change', async e => {
   state.newsCategory = e.target.value;
-  state.newsPage     = 1;
+  state.newsPage = 1;
   await fetchAndRenderNews();
 });
 
@@ -361,34 +489,133 @@ document.getElementById('btn-news-refresh').addEventListener('click', () => {
    ══════════════════════════════════════════════════════════════════════ */
 const FALLBACK_SUMMARY = {
   centralized: { auc: 0.9748, mrr: 0.9683, ndcg5: 0.9700, ndcg10: 0.9785, loss: 0.334 },
-  federated:   { auc: 0.9795, mrr: 0.9717, ndcg5: 0.9762, ndcg10: 0.9802, loss: 0.203 },
+  federated: { auc: 0.9795, mrr: 0.9717, ndcg5: 0.9762, ndcg10: 0.9802, loss: 0.203 },
 };
 const FALLBACK_HISTORY = {
   centralized: [
-    { epoch:1, train_loss:16.09, AUC:0.9668, MRR:0.9567, 'nDCG@5':0.9575, 'nDCG@10':0.9704 },
-    { epoch:2, train_loss:1.340, AUC:0.9748, MRR:0.9707, 'nDCG@5':0.9709, 'nDCG@10':0.9791 },
-    { epoch:3, train_loss:0.763, AUC:0.9729, MRR:0.9695, 'nDCG@5':0.9709, 'nDCG@10':0.9788 },
-    { epoch:4, train_loss:0.491, AUC:0.9748, MRR:0.9683, 'nDCG@5':0.9700, 'nDCG@10':0.9785 },
-    { epoch:5, train_loss:0.334, AUC:0.9748, MRR:0.9683, 'nDCG@5':0.9700, 'nDCG@10':0.9785 },
+    { epoch: 1, train_loss: 16.09, AUC: 0.9668, MRR: 0.9567, 'nDCG@5': 0.9575, 'nDCG@10': 0.9704 },
+    { epoch: 2, train_loss: 1.340, AUC: 0.9748, MRR: 0.9707, 'nDCG@5': 0.9709, 'nDCG@10': 0.9791 },
+    { epoch: 3, train_loss: 0.763, AUC: 0.9729, MRR: 0.9695, 'nDCG@5': 0.9709, 'nDCG@10': 0.9788 },
+    { epoch: 4, train_loss: 0.491, AUC: 0.9748, MRR: 0.9683, 'nDCG@5': 0.9700, 'nDCG@10': 0.9785 },
+    { epoch: 5, train_loss: 0.334, AUC: 0.9748, MRR: 0.9683, 'nDCG@5': 0.9700, 'nDCG@10': 0.9785 },
   ],
   federated: [
-    { round:1, train_loss:34.37, AUC:0.9634, MRR:0.9467, 'nDCG@5':0.9502, 'nDCG@10':0.9630 },
-    { round:2, train_loss:2.312, AUC:0.9731, MRR:0.9700, 'nDCG@5':0.9661, 'nDCG@10':0.9787 },
-    { round:3, train_loss:0.291, AUC:0.9764, MRR:0.9707, 'nDCG@5':0.9709, 'nDCG@10':0.9793 },
-    { round:4, train_loss:0.267, AUC:0.9812, MRR:0.9717, 'nDCG@5':0.9762, 'nDCG@10':0.9805 },
-    { round:5, train_loss:0.203, AUC:0.9795, MRR:0.9717, 'nDCG@5':0.9762, 'nDCG@10':0.9802 },
+    { round: 1, train_loss: 34.37, AUC: 0.9634, MRR: 0.9467, 'nDCG@5': 0.9502, 'nDCG@10': 0.9630 },
+    { round: 2, train_loss: 2.312, AUC: 0.9731, MRR: 0.9700, 'nDCG@5': 0.9661, 'nDCG@10': 0.9787 },
+    { round: 3, train_loss: 0.291, AUC: 0.9764, MRR: 0.9707, 'nDCG@5': 0.9709, 'nDCG@10': 0.9793 },
+    { round: 4, train_loss: 0.267, AUC: 0.9812, MRR: 0.9717, 'nDCG@5': 0.9762, 'nDCG@10': 0.9805 },
+    { round: 5, train_loss: 0.203, AUC: 0.9795, MRR: 0.9717, 'nDCG@5': 0.9762, 'nDCG@10': 0.9802 },
   ],
 };
 
 /* ── Utils ──────────────────────────────────────────────────────────── */
-function escHtml(str = '') {
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
 }
-
 /* ── Init ───────────────────────────────────────────────────────────── */
 (async () => {
   await checkHealth();
   loadOverview();   // Load overview section by default
 })();
+async function loadNews() {
+  const grid = document.getElementById("news-grid");
+
+  if (grid) {
+    grid.innerHTML = "<p>Loading news...</p>";
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/news/?per_page=20"
+    );
+
+    if (!response.ok) {
+      throw new Error(`News API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    renderNewsGrid(data.articles || []);
+
+    console.log("News source:", data.source);
+    console.log("Articles loaded:", data.total);
+
+  } catch (error) {
+    console.error("Could not load news:", error);
+
+    if (grid) {
+      grid.innerHTML = `
+                <p>Unable to load news.
+                Check whether the Flask backend is running.</p>
+            `;
+    }
+  }
+}
+
+function renderRecommendations(recommendations) {
+  const container = document.getElementById("rec-results");
+
+  if (!container) {
+    console.error("Could not find #rec-results");
+    return;
+  }
+
+  if (!recommendations || recommendations.length === 0) {
+    container.innerHTML =
+      "<p>No recommendations available yet. Read a few articles first.</p>";
+    return;
+  }
+
+  container.innerHTML = recommendations.map(article => `
+        <article class="news-article-card">
+            <img
+                class="news-image"
+                src="${escapeHtml(article.image_url || "")}"
+                alt=""
+                onerror="this.style.display='none'"
+                loading="lazy"
+            >
+
+            <div class="news-card-content">
+                <small>
+                    Recommendation #${Number(article.rank) || 1}
+                </small>
+
+                <h3 class="article-title">
+                    ${escapeHtml(article.title || article.news_id)}
+                </h3>
+
+                <span class="article-category">
+                    ${escapeHtml(article.category || "News")}
+                </span>
+
+                <p class="article-abstract">
+                    ${escapeHtml(article.abstract || "")}
+                </p>
+
+                <small>
+                    Mode: ${escapeHtml(
+    article.recommendation_mode || "model"
+  )}
+                </small>
+
+                ${article.url ? `
+                    <p>
+                        <a
+                            class="article-link"
+                            href="${escapeHtml(article.url)}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >Read article ↗</a>
+                    </p>
+                ` : ""}
+            </div>
+        </article>
+    `).join("");
+}

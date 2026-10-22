@@ -1,55 +1,108 @@
-"""Recommend route — POST /api/recommend/"""
+# backend/routes/recommend.py
 
 import logging
 from flask import Blueprint, request, jsonify
-from backend.services.recommender_service import get_top_k_recommendations
+
+from backend.services.demo_news import DEMO_NEWS
 
 logger = logging.getLogger(__name__)
 recommend_bp = Blueprint("recommend", __name__)
 
 
+def demo_recommendations(history, top_k=10):
+    """Transparent category-based fallback, not federated inference."""
+
+    history_ids = {
+        str(item.get("news_id", ""))
+        if isinstance(item, dict) else str(item)
+        for item in history
+    }
+
+    categories = {}
+
+    # Build interests from articles in the demo catalogue.
+    for article in DEMO_NEWS:
+        if article["news_id"] in history_ids:
+            category = article["category"]
+            categories[category] = categories.get(category, 0) + 1
+
+    candidates = [
+        article for article in DEMO_NEWS
+        if article["news_id"] not in history_ids
+    ]
+
+    candidates.sort(
+        key=lambda article: (
+            -categories.get(article["category"], 0),
+            article["news_id"]
+        )
+    )
+
+    recommendations = []
+
+    for rank, article in enumerate(candidates[:top_k], start=1):
+        result = dict(article)
+        result["rank"] = rank
+        result["score"] = categories.get(article["category"], 0)
+        result["recommendation_mode"] = "demo_category_fallback"
+        recommendations.append(result)
+
+    return recommendations
+
+
 @recommend_bp.route("/", methods=["POST"])
 def recommend():
-    """Return top-K personalised news recommendations.
-
-    Request JSON:
-        {
-          "history": ["N12345", "N67890"],   // clicked news IDs (newest last)
-          "candidates": ["N111", ...],        // optional explicit candidate pool
-          "top_k": 10
-        }
-
-    Response JSON:
-        {
-          "recommendations": [
-            {"rank":1, "news_id":"N111", "title":"...", "category":"...",
-             "subcategory":"...", "abstract":"...", "score":0.987},
-            ...
-          ]
-        }
-    """
     data = request.get_json(silent=True) or {}
-    history    = data.get("history", [])
-    candidates = data.get("candidates", None)
-    top_k      = min(int(data.get("top_k", 10)), 50)
+    history = data.get("history", [])
+    top_k = data.get("top_k", 10)
 
     if not isinstance(history, list):
-        return jsonify({"error": "'history' must be a list of news IDs."}), 400
+        return jsonify({
+            "error": "history must be a list of article IDs"
+        }), 400
 
     try:
-        recs = get_top_k_recommendations(history, candidates, top_k=top_k)
-        return jsonify({"recommendations": recs})
-    except Exception as exc:
-        logger.exception("Recommendation error: %s", exc)
-        return jsonify({"error": str(exc)}), 500
+        top_k = min(50, max(1, int(top_k)))
+    except (TypeError, ValueError):
+        top_k = 10
+
+    # Try the existing trained recommender first.
+    try:
+        from backend.services.recommender_service import (
+            get_top_k_recommendations
+        )
+
+        results = get_top_k_recommendations(
+            history, None, top_k=top_k
+        )
+
+        if results:
+            return jsonify({
+                "mode": "model",
+                "recommendations": results
+            })
+
+    except Exception:
+        logger.exception(
+            "Existing model unavailable; using demo recommendations."
+        )
+
+    return jsonify({
+        "mode": "demo_category_fallback",
+        "notice": (
+            "These recommendations use category preferences, "
+            "not a trained federated model."
+        ),
+        "recommendations": demo_recommendations(history, top_k)
+    })
 
 
 @recommend_bp.route("/demo", methods=["GET"])
-def demo():
-    """Demo endpoint using a hard-coded history seed — useful for the frontend."""
-    from backend.services.model_loader import get_parser
-    parser = get_parser()
-    # Pick first 5 known news IDs as dummy history
-    sample_ids = [nid for nid in list(parser.news2idx.keys())[1:6]]
-    recs = get_top_k_recommendations(history_news_ids=sample_ids, candidate_news_ids=None, top_k=10)
-    return jsonify({"history_seed": sample_ids, "recommendations": recs})
+def recommend_demo():
+    history = ["DEMO001", "DEMO005"]
+
+    return jsonify({
+        "mode": "demo_category_fallback",
+        "history_seed": history,
+        "recommendations": demo_recommendations(history)
+    })

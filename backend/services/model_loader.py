@@ -1,5 +1,6 @@
 """Backend model loader — loads checkpoints and embedding cache once at startup."""
 
+from torch._dynamo.package import cache_dir
 import json
 import logging
 from pathlib import Path
@@ -50,7 +51,7 @@ def _load_model(checkpoint_path: Path, device: torch.device):
 def _load_embedding_cache(device: torch.device):
     from preprocessing.embedding_cache import MultimodalEmbeddingCache
     cache_path = EMBEDDINGS_DIR / "multimodal_embeddings.pt"
-    cache = MultimodalEmbeddingCache(cache_path=str(cache_path), device=device)
+    cache = MultimodalEmbeddingCache(cache_dir=str(cache_path), device=device)
     logger.info("Loaded embedding cache from %s", cache_path)
     return cache
 
