@@ -249,3 +249,36 @@ def test_embedding_cache_precompute_and_load(temp_data_env):
 
     assert list(text_embs.shape) == [3, 768]
     assert list(img_embs.shape) == [3, 512]
+
+
+def test_phase3_text_encoder_embedding():
+    """Verify Phase 3 TextFeatureExtractor produces 768-dim mean-pooled embeddings."""
+    extractor = TextFeatureExtractor(max_title_len=16)
+
+    # Single text
+    single_emb = extractor.extract_embedding("Breaking News: AI in Medical Science")
+    assert isinstance(single_emb, torch.Tensor)
+    assert list(single_emb.shape) == [768]
+    assert single_emb.dtype == torch.float32
+
+    # Batch texts
+    batch_embs = extractor.extract_embedding([
+        "Article 1: New Space Mission Launched",
+        "Article 2: Global Economy Update",
+    ])
+    assert list(batch_embs.shape) == [2, 768]
+
+
+def test_phase4_image_encoder_zero_vector_fallback():
+    """Verify Phase 4 ImageFeatureExtractor zero-vector fallback for missing images."""
+    extractor = ImageFeatureExtractor(embedding_dim=512, image_size=224)
+
+    # Zero tensor fallback
+    zero_tensor = extractor.preprocess_image("missing_news_pic.jpg", use_zero_fallback=True)
+    assert list(zero_tensor.shape) == [3, 224, 224]
+    assert torch.all(zero_tensor == 0.0)
+
+    # Zero vector fallback
+    zero_vec = extractor.fallback_zero_vector()
+    assert list(zero_vec.shape) == [512]
+    assert torch.all(zero_vec == 0.0)

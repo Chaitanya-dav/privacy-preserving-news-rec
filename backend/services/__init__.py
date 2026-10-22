@@ -1,1 +1,1 @@
-"""Package initialization."""
+"""Backend services package."""

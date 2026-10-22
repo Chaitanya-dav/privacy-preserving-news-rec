@@ -15,9 +15,8 @@ Pillow>=9.0.0
 flwr>=1.7.0
 
 # REST API & Web Serving
-fastapi>=0.100.0
-uvicorn[standard]>=0.23.0
-pydantic>=2.0.0
+flask>=3.0.0
+flask-cors>=4.0.0
 
 # Data Processing & Recommendation Evaluation
 numpy>=1.24.0

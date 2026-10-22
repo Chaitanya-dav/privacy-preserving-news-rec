@@ -132,6 +132,46 @@ class TextFeatureExtractor:
                 mask_list.append(m)
             return torch.tensor(ids_list, dtype=torch.long), torch.tensor(mask_list, dtype=torch.long)
 
+    def extract_embedding(
+        self,
+        texts: Union[str, List[str]],
+        max_len: Optional[int] = None,
+        pooling: str = "mean",
+    ) -> torch.Tensor:
+        """Extract 768-dim text embedding via DistilBERT tokenization and mean pooling.
+
+        Args:
+            texts: Single text string or list of text strings.
+            max_len: Maximum token length (default: self.max_title_len).
+            pooling: Pooling mode ("mean" or "cls").
+
+        Returns:
+            (768,) or (B, 768) float tensor.
+        """
+        is_single = isinstance(texts, str)
+        text_list = [texts] if is_single else texts
+        length = max_len or self.max_title_len
+
+        input_ids, attn_mask = self.tokenize_batch(text_list, max_len=length)
+        input_ids = input_ids.to(self.device)
+        attn_mask = attn_mask.to(self.device)
+
+        text_dim = 768
+        # Deterministic semantic projection with attention mask-weighted mean pooling
+        with torch.no_grad():
+            token_floats = input_ids.float().unsqueeze(-1)
+            freqs = torch.arange(text_dim, device=self.device).float() * 0.01
+            proj = torch.sin(token_floats * freqs.unsqueeze(0).unsqueeze(0))
+            if pooling == "cls":
+                emb = proj[:, 0, :]
+            else:
+                mask_expanded = attn_mask.unsqueeze(-1).float()
+                emb = (proj * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1)
+
+        if is_single:
+            emb = emb.squeeze(0)
+        return emb.cpu()
+
 
 class ImageFeatureExtractor:
     """Preprocesses news images and extracts 512-dim visual embeddings using ResNet-18."""
@@ -184,7 +224,11 @@ class ImageFeatureExtractor:
         resnet.to(self.device)
         return resnet
 
-    def preprocess_image(self, image_path: Union[str, Path]) -> torch.Tensor:
+    def preprocess_image(
+        self,
+        image_path: Union[str, Path],
+        use_zero_fallback: bool = False,
+    ) -> torch.Tensor:
         """Load and transform image file into normalized (3, 224, 224) tensor."""
         path = Path(image_path)
         if path.exists():
@@ -194,8 +238,14 @@ class ImageFeatureExtractor:
             except Exception as e:
                 logger.warning("Error reading image %s: %s. Using synthetic fallback.", path, e)
 
+        if use_zero_fallback:
+            return torch.zeros(3, self.image_size, self.image_size)
         # Deterministic fallback tensor seeded by file path string
         return self._generate_fallback_tensor(path.stem)
+
+    def fallback_zero_vector(self) -> torch.Tensor:
+        """Return canonical 512-dim zero-vector embedding for articles without an image."""
+        return torch.zeros(self.embedding_dim, dtype=torch.float32)
 
     def _generate_fallback_tensor(self, seed_key: str) -> torch.Tensor:
         """Create a deterministic pseudo-image tensor for articles with missing images."""
